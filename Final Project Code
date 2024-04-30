@@ -1,0 +1,132 @@
+// The University of Kansas
+// ME 708 Individual Project
+// Arduino Uno Based Sunrise Alarm Clock
+// Simona Vaitkune
+
+#include <Adafruit_NeoPixel.h>
+#include <Wire.h>
+#include <RTClib.h>
+
+#define LED_PIN    9    // Pin connected to the LED strip
+#define LED_COUNT  60   // Number of LEDs in the strip
+#define ALARM_HOUR 06   // Alarm hour (24-hour format) - Make sure to adjust it
+#define ALARM_MIN  35    // Alarm minute - Make sure to adjust it
+#define SPEAKER_PIN 12   // Piezo speaker pin
+
+RTC_DS3231 rtc; // Real Time Clock
+Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800); // LED strip
+
+// Definitions
+bool alarmTriggered = false;
+unsigned long alarmStartTime;
+bool alarmReset = false;
+DateTime lastAlarmTime;
+
+// Happy Birthday song notes and durations
+#define NOTE_G4 392
+#define NOTE_A4 440
+#define NOTE_B4 494
+#define NOTE_C5 523
+#define NOTE_D5 587
+#define NOTE_E5 659
+#define NOTE_F5 698
+#define NOTE_G5 784
+
+int melody[] = {
+  NOTE_G4, NOTE_G4, NOTE_A4, NOTE_G4, NOTE_C5, NOTE_B4, 
+  NOTE_G4, NOTE_G4, NOTE_A4, NOTE_G4, NOTE_D5, NOTE_C5,
+  NOTE_G4, NOTE_G4, NOTE_G5, NOTE_E5, NOTE_C5, NOTE_B4,
+  NOTE_A4, NOTE_F5, NOTE_F5, NOTE_E5, NOTE_C5, NOTE_D5,
+  NOTE_C5
+};
+
+int noteDurations[] = {
+  4, 4, 4, 4, 4, 2, 
+  4, 4, 4, 4, 4, 2,
+  4, 4, 4, 4, 4, 2,
+  4, 4, 4, 4, 4, 2,
+  1
+};
+
+void setup() {
+  Serial.begin(9600);
+  strip.begin();
+  strip.show(); // Initialize all pixels to 'off'
+  pinMode(SPEAKER_PIN, OUTPUT); // Set the speaker pin as an output
+
+  if (!rtc.begin()) {
+    Serial.println("Couldn't find RTC");  // Error catcher on RTC end
+    while (1);
+  }
+
+  if (rtc.lostPower()) {
+    Serial.println("RTC lost power, let's set the time!");
+    // Set the time to whichever you define
+    rtc.adjust(DateTime(2024, 4, 22, 17, 42, 0)); // Year, Month, Day, Hour, Minute, Second
+  }
+}
+
+void loop() {
+  DateTime now = rtc.now();
+
+  int currentHour = now.hour();
+  int currentMin = now.minute();
+
+  // Display current time on Serial Monitor
+  Serial.print("Current Time: ");
+  Serial.print(currentHour);
+  Serial.print(":");
+  if (currentMin < 10) {
+    Serial.print("0"); // Add leading zero for minutes < 10
+  }
+  Serial.println(currentMin);
+
+  // Check if it's time to reset the alarm
+  if (alarmReset && now.hour() == lastAlarmTime.hour() && now.minute() == lastAlarmTime.minute()) {
+    alarmTriggered = false; // Reset the alarmTriggered flag
+    alarmReset = false;     // Reset the alarmReset flag
+  }
+
+  // Check if it's time for the alarm to trigger
+  if (currentHour == ALARM_HOUR && currentMin == ALARM_MIN && !alarmTriggered) {
+    // Alarm time reached, activate rising effect
+    alarmTriggered = true;
+    alarmStartTime = millis(); // Record the time the alarm was triggered
+    lastAlarmTime = now;       // Record the last alarm time
+    alarmReset = true;         // Set the flag to reset the alarm after 24 hours
+
+    // Play Happy Birthday
+    for (int i = 0; i < sizeof(melody) / sizeof(melody[0]); i++) {
+      int noteDuration = 1000 / noteDurations[i];
+      tone(SPEAKER_PIN, melody[i], noteDuration);
+      delay(noteDuration * 1.30); // Add a small delay between notes for a better sound
+      noTone(SPEAKER_PIN);
+    }
+
+    // Gradually increase brightness every minute for 10 minutes
+    int maxBrightness = 255;
+    int initialBrightness = 0;
+    for (int i = 0; i < 10; i++) {
+      // Increase brightness by 10% every minute
+      initialBrightness += maxBrightness * 0.1;
+      for (int j = 0; j < LED_COUNT; j++) {
+        strip.setPixelColor(j, strip.Color(initialBrightness, initialBrightness, initialBrightness));
+      }
+      strip.show();
+      delay(60 * 1000); // Delay for 1 minute
+    }
+
+    // Turn off the LED strip after 10 minutes
+    for (int i = 0; i < LED_COUNT; i++) {
+      strip.setPixelColor(i, strip.Color(0, 0, 0)); // Turn off all LEDs
+    }
+    strip.show();
+  }
+
+  // Check if it's time to reset the alarm for the next day
+  if (currentHour == ALARM_HOUR && currentMin == ALARM_MIN && alarmReset) {
+    alarmReset = false; // Reset the alarmReset flag
+  }
+}
+
+
