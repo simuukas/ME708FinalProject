@@ -1,28 +1,32 @@
+// ME708 Individual Project
 // The University of Kansas
-// ME 708 Individual Project
-// Arduino Uno Based Sunrise Alarm Clock
 // Simona Vaitkune
+// Arduino Rising Clock Code
 
+
+// Including the necessary libraries
 #include <Adafruit_NeoPixel.h>
 #include <Wire.h>
 #include <RTClib.h>
 
 #define LED_PIN    9    // Pin connected to the LED strip
 #define LED_COUNT  60   // Number of LEDs in the strip
-#define ALARM_HOUR 06   // Alarm hour (24-hour format) - Make sure to adjust it
-#define ALARM_MIN  35    // Alarm minute - Make sure to adjust it
+#define ALARM_HOUR 17   // Alarm hour (24-hour format) - adjust as needed
+#define ALARM_MIN  56  // Alarm minute - adjust as needed
 #define SPEAKER_PIN 12   // Piezo speaker pin
 
-RTC_DS3231 rtc; // Real Time Clock
-Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800); // LED strip
 
-// Definitions
+// Required modules for RTC module and LED strip
+RTC_DS3231 rtc;
+Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+
+// Defining
 bool alarmTriggered = false;
 unsigned long alarmStartTime;
 bool alarmReset = false;
 DateTime lastAlarmTime;
 
-// Happy Birthday song notes and durations
+// Happy Birthday song notes and durations - feel free to change it to whatever you like to hear in the morning
 #define NOTE_G4 392
 #define NOTE_A4 440
 #define NOTE_B4 494
@@ -55,14 +59,14 @@ void setup() {
   pinMode(SPEAKER_PIN, OUTPUT); // Set the speaker pin as an output
 
   if (!rtc.begin()) {
-    Serial.println("Couldn't find RTC");  // Error catcher on RTC end
+    Serial.println("Couldn't find RTC");
     while (1);
   }
 
   if (rtc.lostPower()) {
     Serial.println("RTC lost power, let's set the time!");
     // Set the time to whichever you define
-    rtc.adjust(DateTime(2024, 4, 22, 17, 42, 0)); // Year, Month, Day, Hour, Minute, Second
+    rtc.adjust(DateTime(2024, 5, 01, 11, 36, 0)); // Year, Month, Day, Hour, Minute, Second
   }
 }
 
@@ -95,7 +99,7 @@ void loop() {
     lastAlarmTime = now;       // Record the last alarm time
     alarmReset = true;         // Set the flag to reset the alarm after 24 hours
 
-    // Play Happy Birthday
+    // Play Happy Birthday - can also make it sound after the lights are done lighting (just in case you don't wake up)
     for (int i = 0; i < sizeof(melody) / sizeof(melody[0]); i++) {
       int noteDuration = 1000 / noteDurations[i];
       tone(SPEAKER_PIN, melody[i], noteDuration);
@@ -103,18 +107,28 @@ void loop() {
       noTone(SPEAKER_PIN);
     }
 
-    // Gradually increase brightness every minute for 10 minutes
-    int maxBrightness = 255;
-    int initialBrightness = 0;
-    for (int i = 0; i < 10; i++) {
-      // Increase brightness by 10% every minute
-      initialBrightness += maxBrightness * 0.1;
-      for (int j = 0; j < LED_COUNT; j++) {
-        strip.setPixelColor(j, strip.Color(initialBrightness, initialBrightness, initialBrightness));
-      }
-      strip.show();
-      delay(60 * 1000); // Delay for 1 minute
-    }
+   // Gradually change colors and increase brightness every minute for 10 minutes
+int maxBrightness = 255;
+int duration = 10; // Duration of the color and brightness transition in seconds
+for (int i = 0; i < duration * 60; i++) { // Loop for 'duration' minutes
+
+
+  // Brightness level and color for this minute
+  int brightness = map(i, 0, duration * 60, 0, maxBrightness); // Linearly map 'i' to the range 0-maxBrightness
+  int red = map(i, 0, duration * 60, 0, 255); // Linearly map 'i' to the range 0-255 for red
+  int green = map(i, 0, duration * 60, 0, 255); // Linearly map 'i' to the range 0-255 for green
+  int blue = map(i, 0, duration * 60, 0, 255); // Linearly map 'i' to the range 0-255 for blue
+
+
+  // Set the brightness and color for all LEDs
+  for (int j = 0; j < LED_COUNT; j++) {
+    strip.setPixelColor(j, strip.Color(red, green, blue)); // Set color of LED 'j'
+  }
+  strip.setBrightness(brightness); // Set brightness level
+  strip.show(); // Update LED strip
+  delay(1000); // Delay for 1 second (1 minute divided by 60)
+}
+
 
     // Turn off the LED strip after 10 minutes
     for (int i = 0; i < LED_COUNT; i++) {
@@ -128,5 +142,4 @@ void loop() {
     alarmReset = false; // Reset the alarmReset flag
   }
 }
-
 
