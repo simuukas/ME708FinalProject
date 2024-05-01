@@ -108,16 +108,16 @@ void loop() {
     }
 
    // Gradually change colors and increase brightness every minute for 10 minutes
-int maxBrightness = 255;
-int duration = 10; // Duration of the color and brightness transition in seconds
-for (int i = 0; i < duration * 60; i++) { // Loop for 'duration' minutes
+  int maxBrightness = 255;
+  int duration = 10; // Duration of the color and brightness transition in seconds
+      for (int i = 0; i < duration * 60; i++) { // Loop for 'duration' minutes
 
 
   // Brightness level and color for this minute
-  int brightness = map(i, 0, duration * 60, 0, maxBrightness); // Linearly map 'i' to the range 0-maxBrightness
-  int red = map(i, 0, duration * 60, 0, 255); // Linearly map 'i' to the range 0-255 for red
-  int green = map(i, 0, duration * 60, 0, 255); // Linearly map 'i' to the range 0-255 for green
-  int blue = map(i, 0, duration * 60, 0, 255); // Linearly map 'i' to the range 0-255 for blue
+  int brightness = map(i, 0, duration * 60, 0, maxBrightness); // Range 0-maxBrightness
+  int red = map(i, 0, duration * 60, 0, 255); // Range 0-255 for red
+  int green = map(i, 0, duration * 60, 0, 255); // Range 0-255 for green
+  int blue = map(i, 0, duration * 60, 0, 255); // Range 0-255 for blue
 
 
   // Set the brightness and color for all LEDs
